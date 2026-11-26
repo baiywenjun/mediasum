@@ -374,6 +374,13 @@ class MediasumApp(App):
         m = RE_START.match(line)
         if m:
             tag = m.group(1)
+            # 阶段严格按 S1→S8 执行，某阶段开始即意味着它之前的阶段不会再跑。
+            # 不做这一步，纯音频时 S5 永远 idle，_pct 在 S5 处 break，
+            # 整个归纳阶段进度条会定格不动。
+            order = [t for t, _ in STAGES]
+            for prev in order[:order.index(tag)]:
+                if self.state[prev] == "idle":
+                    self.state[prev] = "skip"
             if tag in EXTRA_STAGES:
                 self.extras.add(tag)
             self.state[tag] = "running"
