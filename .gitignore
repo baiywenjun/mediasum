@@ -1,0 +1,26 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+dist/
+
+# 虚拟环境：1.1 GB，且与 macOS 架构/版本绑定，必须本地重建
+.venv/
+venv/
+
+# 模型权重：约 105 MB，进仓库会永久留在 Git 历史里，且可一条命令重新下载
+#   ./ms models download-all
+models/
+
+# 本地覆盖配置（含个人路径、云端 API 配置），不入库
+config.local.toml
+
+# 运行产物与日志
+*.log
+out/
+output/
+
+# macOS
+.DS_Store
+._*

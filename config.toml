@@ -1,0 +1,229 @@
+# mediasum 配置文件
+#
+# 改这里就够了，不需要动代码。任何一项都可以被命令行临时覆盖：
+#   ms a.mp4 --set llm.provider=openai --set summary.detail=detailed
+# 查看当前生效值：ms config
+# 只改这一份文件对所有视频生效；想给某条视频单独配，复制一份用 --config 指定。
+
+
+[general]
+# 产物输出位置。最终得到 <output_dir>/<文件名>/ 下三个文件。
+output_dir = "~/Videos/notes"
+
+# 中间产物（音频、转写 JSON、抽帧图片）。--from 重跑时靠它复用，别随手删。
+work_dir   = "~/Videos/notes/.work"
+
+# wav 是 2 小时视频约 200 MB 的中间文件，默认跑完就删。
+# 需要反复调参时设为 true，能省掉每次重新解码。
+keep_audio = false
+
+# 抽帧图片保留，方便日后重新 OCR 或手动看图。
+keep_frames = true
+
+
+[asr]
+# Apple Silicon 上必须用小写 turbo 版：large-v3 在 M1 上只有 0.3 倍实时，
+# 1 小时音频要算 3 小时，不可用。turbo 是官方蒸馏版，快 5–6 倍，中文损失很小。
+model   = "mlx-community/whisper-large-v3-turbo"
+language = "zh"
+
+# 第一层标点（Whisper 侧）：既给术语表纠正同音字，也要求它输出标点。
+# 这段话会作为解码提示塞进模型。把常讲的专有名词写进来，能显著减少
+# 「会话→绘画」「拖堂→脱下膛」这类错误。总长控制在 200 字内，
+# 太长反而会诱导模型编造内容。
+initial_prompt = """以下是普通话讲解，请使用简体中文，并使用规范的标点符号断句。
+涉及术语：网络协议、IP 地址、子网掩码、MAC 地址、集线器、交换机、路由器、
+局域网、以太网、数据链路层、网络层、传输层、TCP/IP、OSI 模型。"""
+
+# 关掉上下文依赖，避免长静音段自我强化、编出「感谢观看」「请订阅」。
+# 代价是跨段的指代衔接略弱，但对长课件的整体质量是正收益。
+condition_on_previous_text = false
+
+
+[punctuation]
+# 第二层：中文标点恢复模型（CT-Transformer INT8 ONNX，72 MB，纯 CPU）。
+# 关掉后只剩规则补句号，中文口语会变成没有逗号的流水账，不建议关。
+enabled = true
+model   = "models/punct/model.int8.onnx"
+
+# 第三层：半角 → 全角（把 `,` `?` `;` 换成 `，` `？` `；`），数字千分位不受影响。
+force_fullwidth = true
+
+# 段尾没有句末标点时补一个句号，保证每段看起来是完整句子。
+tail_period = true
+
+
+[paragraph]
+# 这一段决定逐字稿「读起来像不像人话」，四个值配合工作：
+#
+# merge_gap  相邻碎片段间隔小于多少秒就认为还在同一句里。Whisper 按停顿切段，
+#            中文口语会切出大量 1–3 秒碎片，这里先聚起来再交给标点模型。
+merge_gap = 1.5
+
+# chunk_max  单次送给标点模型的最大时长。太短模型缺乏上下文判断不了句界，
+#            太长单次推理变慢。30 秒是实测的平衡点。
+chunk_max = 30.0
+
+# target     生成段落的目时长（秒）。达到这个长度就在下一个句号处断开。
+#            12 秒约 60–90 字，一屏能读完一段，是笔记的场景最优值。
+target = 12.0
+
+# max        单段硬上限（秒）。即使没到 target，超过这个时长也强制在句号处断开，
+#            防止讲者一口气不停导致出现几百字的巨型段落。
+max = 22.0
+
+# max_chars  单段字数上限。时长和字数要同时管：语速快的人一分钟说 450 字，
+#            只按时长切会得到一百多字的巨型段落，读起来很累。
+max_chars = 120
+
+# true = 一句话一段（适合做字幕/引用）；false = 按上面的时长聚段（适合阅读）。
+separate_sentence = false
+
+
+[diarization]
+# 说话人分离。PPT 单人讲解不需要，默认关掉能省 5–10 分钟。
+#   off     不分离
+#   auto    先探测，只有检出 2 人以上才启用（推荐：不用预先知道有没有多人）
+#   full    严格按声纹分到每个人
+#   coarse  分出主要说话人，零散短发言统一记为「其他人」（会议场景够用）
+#
+# 首次使用先下载模型（约 34 MB）：ms models download-diar
+mode = "off"
+
+# 聚类阈值：越大越容易把不同人判成同一个，越小越容易过度切分。
+# 中文多人会议通常 0.5–0.7 之间效果较好。
+threshold = 0.5
+
+# 已知人数时把两个设成相同的正数（如都设 3）能显著提高准确率；
+# -1 表示自动判断。
+min_speakers = -1
+max_speakers = 8
+
+segmentation_model = "models/diar/segmentation.onnx"
+embedding_model    = "models/diar/embedding.onnx"
+
+# 把发言占比低于 15% 的人合并成「其他人」，避免出现一堆几乎不说话的标签。
+coarse = true
+
+
+[frames]
+# 视频才会抽帧，纯音频自动跳过。
+enabled = true
+
+# 场景检测阈值：画面变化超过这个比例就取一帧。0.18 对 PPT 翻页敏感、
+# 对光标移动不敏感，是比较稳的值。
+scene_threshold = 0.18
+
+# 定时兜底：每 N 秒强行取一帧。纯静态 PPT 长时间不翻页时，光靠场景检测
+# 可能整段只有一张图，这个值保证每个时间段都有画面对照。设 0 关闭。
+interval = 120.0
+
+# 帧数量上限。两小时的课通常翻 60–100 页，全塞进 HTML 会到十几兆，
+# 40–50 张是「够看懂脉络」和「文件别太大」的折中。
+max_frames = 48
+
+# 按视频长度自适应：每分钟最多保留几帧。12 分钟 → 约 36 帧，2 小时 → 上限 48 帧。
+frames_per_minute = 3.0
+
+# 感知哈希去重阈值：汉明距离小于它的两帧视为同一画面（PPT 翻页动画会产生连拍）。
+dedupe_distance = 10
+
+# ↓↓↓ 直播/网课录屏必须改这一项 ↓↓↓
+# 裁剪比例 [左, 上, 右, 下]，取值 0–1。用于裁掉右侧聊天区、底部工具栏、
+# 右下角水印和二维码——不裁的话 OCR 会把弹幕全读进来，噪声占一半。
+# 空列表 = 不裁剪。
+#   腾讯课堂/小鹅通右侧带聊天栏： [0.02, 0.07, 0.78, 0.95]
+#   纯 PPT 全屏录制：                []
+# 不确定版式时先跑：ms probe a.mp4，会给出建议值。
+crop = []
+
+# 保存宽度。1280 对 PPT 文字足够清晰，再大只是让 HTML 变胖。
+width = 1280
+jpeg_quality = 4
+
+# OCR 置信度低于此值的行丢弃；识别出的文字少于这个字数的帧整张丢弃
+# （通常是翻页动画的过渡画面）。
+ocr_min_confidence = 0.35
+min_ocr_chars = 10
+
+# OCR 噪声黑名单（正则）。课程开头常是售卖页或直播间，OCR 会读出
+# 「¥666 立即购买」「好评度 96%」这类内容，混进归纳材料会把模型带偏。
+# 命中的整行会被丢弃。按你常用的平台补充，比如加 "已售|人正在看"。
+ocr_blocklist = ["¥\\s*\\d", "￥\\s*\\d", "好评度", "立即购买", "已售",
+                 "正在看", "点赞", "扫码", "关注公众号"]
+
+ocr_languages = ["zh-Hans", "en-US"]
+
+
+[llm]
+# 归纳用什么模型。这是「摘要质量」的总开关：
+#   ollama  本地跑，不出网，免费，7B 模型能出「够用」的笔记，但口吻偏泛。
+#   openai  任何 OpenAI 兼容端点（官方、DeepSeek、通义、vLLM 都行），
+#           质量明显更高、能直接当交付物，代价是内容离开本机。
+provider = "ollama"
+
+temperature = 0.3
+
+# 单次请求超时。两小时视频做 map-reduce 时，单次归纳可能跑几分钟，
+# 本地 7B 建议 900，云端 300 足够。
+timeout = 900
+
+[llm.ollama]
+base_url = "http://127.0.0.1:11434"
+model    = "qwen2.5:latest"
+num_ctx  = 24576      # 上下文窗口。7B 模型在 16 GB 机器上开到 32k 会开始换页变慢。
+
+[llm.openai]
+base_url    = "https://api.openai.com/v1"   # 换成 https://api.deepseek.com/v1 也可以
+model       = "gpt-4o-mini"
+api_key_env = "OPENAI_API_KEY"              # 密钥从这个环境变量读，不要写进本文件
+json_mode   = true                          # 端点不支持 response_format 时设为 false
+max_tokens  = 4096
+
+
+[summary]
+# 详细程度，直接决定 HTML 里有什么：
+#   brief     只有标题 + 摘要（最快，适合只是想知道讲了什么）
+#   standard  摘要 + 章节脉络 + 术语
+#   detailed  上面全部 + 关键原话 + 待确认问题
+detail = "standard"
+
+# 先按块提炼要点，再合成最终结构。这不是优化项而是必需项：
+# 把两小时逐字稿整段交给 7B 模型，它只会总结开头一两分钟（注意力衰减），
+# 章节全挤在片头。分块后模型看到的是「带时间范围的分段要点」，才能覆盖全片。
+map_reduce  = true
+
+# 0 = 自动按视频长度分块（约每 3 分钟一块，上限 16 块）。
+# 一般不用改：改成 3000 这类固定值只适合你明确知道单块合适长度的情况。
+chunk_chars = 0
+
+# 摘要长度区间（字）。模型写少了会自动要求扩写，写多了要求压缩。
+# 你要求「不超过 600 字」，所以上限定在 580 留出余量。
+abstract_min = 450
+abstract_max = 580
+
+chapters_min = 4
+chapters_max = 8
+points_per_chapter = 5
+terms_count = 8
+
+
+[output]
+# 三份产物各自的总开关，关掉就不生成也不渲染。
+transcript   = true      # 一、完整逐字稿
+detail_html  = true      # 二、详细总结（含关键画面）
+abstract     = true      # 三、摘要
+
+# 逐字稿格式：txt（带 [HH:MM:SS] 前缀，适合直接读）
+#             md （适合丢进 Obsidian/Notion）
+transcript_format = "txt"
+
+# 额外导出一份 SRT 字幕，需要拿字幕去做剪辑或上传时打开。
+srt = false
+
+# 详细总结里的图片以 base64 内嵌，单个 HTML 文件可离线打开、可直接发人。
+# 关掉后 HTML 只有文字，文件从几兆降到几十 KB。
+embed_frames = true
+
+# 逐字稿里是否显示「说话人 N：」前缀。单人内容建议 false，读起来更顺。
+show_speaker = true

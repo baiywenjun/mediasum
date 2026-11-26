@@ -1,0 +1,8 @@
+#!/bin/bash
+# mediasum 终端界面启动器
+# 走 `-m mediasum`（__main__.py → cli.main），不要用 `-m mediasum.cli`，
+# 那里没有 __main__ 块，会静默什么都不做。
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec "$DIR/.venv/bin/python" -m mediasum tui "$@"

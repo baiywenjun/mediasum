@@ -1,0 +1,29 @@
+# mediasum 依赖清单
+# 安装：uv pip install --python .venv/bin/python -r requirements.txt
+# 版本下限为开发时的实测版本，向上放宽；库之间没有强耦合，可以单独升级。
+
+# 语音识别：Whisper 的 MLX 版，走 Apple Silicon 的 Metal 加速。
+# 仅支持 macOS + Apple Silicon，Linux / Intel Mac 上装不上。
+mlx-whisper>=0.4.3
+
+# 标点恢复（CT-Transformer）与说话人分离，均为 ONNX 推理
+sherpa-onnx>=2.0.3
+
+# 画面文字识别：封装 macOS 原生 Vision 框架，无需另下权重
+ocrmac>=1.0.1
+
+# 详细总结的 HTML 模板
+jinja2>=3.1.6
+
+# 模型权重下载（HuggingFace Hub，国内可配 HF_ENDPOINT 走镜像）
+huggingface-hub>=0.20
+
+# 抽帧去重用的图片解码
+pillow>=10.0
+
+# 终端界面
+textual>=8.0
+
+# 数值计算（sherpa-onnx 的音频输入）与 YAML 配置解析（标点模型）
+numpy>=1.26
+pyyaml>=6.0
