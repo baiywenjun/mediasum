@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>mediasum · 音视频转笔记</title>
+<link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+<header class="top">
+  <div class="brand">
+    <span class="dot"></span>
+    <h1>mediasum</h1>
+    <span class="tag">音视频 → 逐字稿 / 详细总结 / 摘要</span>
+  </div>
+  <div class="meta" id="meta">正在连接…</div>
+</header>
+
+<main>
+  <!-- 左栏：输入与选项 -->
+  <section class="panel input-panel">
+    <div class="field">
+      <label for="src">音视频路径</label>
+      <div class="row">
+        <input id="src" type="text" spellcheck="false"
+               placeholder="粘贴绝对路径，或从右侧选最近文件">
+        <select id="recent" title="最近文件">
+          <option value="">最近文件…</option>
+        </select>
+      </div>
+      <p class="hint" id="srcHint">支持 mp4 / mov / mkv / mp3 / m4a / wav 等；不经过上传，后端直接读本地文件。</p>
+    </div>
+
+    <div class="field">
+      <label>产物</label>
+      <div class="checks">
+        <label class="chk"><input type="checkbox" id="optTranscript" checked><span>完整逐字稿</span></label>
+        <label class="chk"><input type="checkbox" id="optHtml" checked><span>详细总结 HTML</span></label>
+        <label class="chk"><input type="checkbox" id="optAbstract" checked><span>摘要</span></label>
+      </div>
+    </div>
+
+    <div class="field grid2">
+      <div>
+        <label for="optDetail">详细程度</label>
+        <select id="optDetail">
+          <option value="brief">简要</option>
+          <option value="standard">标准</option>
+          <option value="detailed">详尽</option>
+        </select>
+      </div>
+      <div>
+        <label for="optDiar">说话人</label>
+        <select id="optDiar">
+          <option value="off">关闭</option>
+          <option value="auto">自动判断</option>
+          <option value="full">全量区分</option>
+          <option value="coarse">粗分（主讲/其他人）</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="optCrop">画面裁剪</label>
+      <input id="optCrop" type="text" spellcheck="false" placeholder="左,上,右,下，如 0.02,0.07,0.78,0.95">
+      <p class="hint">留空 = 全画面。直播录屏建议填，否则 OCR 会把聊天区和二维码读进来。</p>
+    </div>
+
+    <div class="actions">
+      <button id="btnStart" class="primary">开始处理</button>
+      <button id="btnCancel" class="ghost" disabled>取消</button>
+    </div>
+  </section>
+
+  <!-- 右栏：进度与产物 -->
+  <section class="panel">
+    <div class="stages" id="stages"></div>
+
+    <div class="progress-wrap">
+      <div class="progress"><div class="bar" id="bar"></div></div>
+      <div class="stat" id="stat">待命</div>
+    </div>
+
+    <div class="outputs" id="outputs"></div>
+
+    <div class="logbox">
+      <div class="loghead">
+        <span>运行日志</span>
+        <button id="btnFold" class="mini">折叠</button>
+      </div>
+      <pre id="log"></pre>
+    </div>
+  </section>
+</main>
+
+<script src="/app.js"></script>
+</body>
+</html>

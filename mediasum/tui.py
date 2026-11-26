@@ -41,7 +41,7 @@ CORE_STAGES = ["S1", "S3", "S4", "S5", "S7", "S8"]
 EXTRA_STAGES = ["S2", "S6"]
 
 RE_DONE = re.compile(r"^\[(S\d)\] 完成，耗时 (.+)$")
-RE_START = re.compile(r"^\[(S\d)\] (.+)$")
+RE_START = re.compile(r"^\[(S\d)\] ▶ (.+)$")
 RE_FRAME = re.compile(r"帧 (\d+)/(\d+)")
 RE_MAP = re.compile(r"第 (\d+)/(\d+) 段")
 RE_TITLE = re.compile(r"^\[S7\] 标题：(.+)$")

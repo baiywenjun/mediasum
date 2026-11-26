@@ -441,10 +441,13 @@ def build_parser() -> argparse.ArgumentParser:
 def main(argv: list[str] | None = None) -> int:
     argv = list(argv if argv is not None else sys.argv[1:])
 
-    # tui 前置分发：它自己有交互参数，不该走 argparse
+    # tui / web 前置分发：它们各自有交互参数，不该走 argparse
     if argv and argv[0] == "tui":
         from .tui import main as tui_main
         return tui_main(argv[1:])
+    if argv and argv[0] == "web":
+        from .web import main as web_main
+        return web_main(argv[1:])
 
     # 子命令在位置参数之前处理，保持 `ms probe xxx` 这类写法的直觉
     command = None

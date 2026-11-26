@@ -42,7 +42,10 @@ class stage:
 
     def __enter__(self) -> "stage":
         self.t0 = time.time()
-        log(self.title, self.tag)
+        # ▶ 是给解析层的锚点：TUI 和 Web 都靠它区分「阶段开始」和普通日志。
+        # 没有这个标记时，`[S3] 2 个原始分段` 这类普通日志会被误判成阶段开始，
+        # 导致子进度被反复清零。改这个字符必须同步 progress.py 与 tui.py 的正则。
+        log(f"▶ {self.title}", self.tag)
         return self
 
     def __exit__(self, exc_type, exc, tb) -> bool:

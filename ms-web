@@ -1,0 +1,8 @@
+#!/bin/bash
+# mediasum 网页界面启动器
+# 前台进程：Ctrl+C 或关闭这个终端窗口，服务即结束（不会在后台常驻）。
+# 另有 --idle-exit 兜底，默认 60 分钟无请求自动退出，可传 0 关闭。
+set -euo pipefail
+DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+export PYTHONPATH="$DIR${PYTHONPATH:+:$PYTHONPATH}"
+exec "$DIR/.venv/bin/python" -m mediasum web "$@"

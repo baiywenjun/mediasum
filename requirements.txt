@@ -24,6 +24,10 @@ pillow>=10.0
 # 终端界面
 textual>=8.0
 
+# 网页界面（ms-web）。SSE 用标准库 + StreamingResponse 实现，不需要 sse-starlette
+fastapi>=0.115
+uvicorn>=0.30
+
 # 数值计算（sherpa-onnx 的音频输入）与 YAML 配置解析（标点模型）
 numpy>=1.26
 pyyaml>=6.0
